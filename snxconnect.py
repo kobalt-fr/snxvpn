@@ -27,6 +27,10 @@ from Crypto.PublicKey  import RSA
 from struct            import pack, unpack
 from subprocess        import Popen, PIPE
 from snxvpnversion     import VERSION
+# Kobalt: drop SSL verification
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
+
 
 """ Todo:
     - timeout can be retrieved at /sslvpn/Portal/LoggedIn
@@ -170,25 +174,29 @@ class HTML_Requester (object) :
         self.debug (self.nextfile)
         self.open ()
         self.debug (self.purl)
+        # Kobalt: dynamic lookup is broken; use a static lookup instead.
         # Get the RSA parameters from the javascript in the received html
-        for script in self.soup.find_all ('script') :
-            if 'RSA' in script.attrs.get ('src', '') :
-                self.next_file (script ['src'])
-                self.debug (self.nextfile)
-                break
-        else :
-            print ('No RSA javascript file found, cannot login')
-            return
+        # for script in self.soup.find_all ('script') :
+        #     if 'RSA' in script.attrs.get ('src', '') :
+        #         self.next_file (script ['src'])
+        #         self.debug (self.nextfile)
+        #         break
+        # else :
+        #     print ('No RSA javascript file found, cannot login')
+        #     return
+        self.next_file("/sslvpn/Login/JS_RSA.js")
         self.open (do_soup = False)
         self.parse_rsa_params ()
         if not self.modulus :
             # Error message already given in parse_rsa_params
             return
-        for form in self.soup.find_all ('form') :
-            if 'id' in form.attrs and form ['id'] == 'loginForm' :
-                self.next_file (form ['action'])
-                assert form ['method'] == 'post'
-                break
+        # Kobalt: dynamic lookup is broken; use a static lookup instead.
+        # for form in self.soup.find_all ('form') :
+        #     if 'id' in form.attrs and form ['id'] == 'loginForm' :
+        #         self.next_file (form ['action'])
+        #         assert form ['method'] == 'post'
+        #         break
+        self.next_file("/sslvpn/Login/Login")
         self.debug (self.nextfile)
 
         enc = PW_Encode (modulus = self.modulus, exponent = self.exponent)
@@ -245,7 +253,9 @@ class HTML_Requester (object) :
         url = '/'.join (('%s:/' % self.args.protocol, self.args.host, filepart))
         if data :
             data = data.encode ('ascii')
-        rq = Request (url, data)
+        # Kobalt: custom User-Agent is needed
+        headers = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/116.0"}
+        rq = Request (url, data, headers)
         self.f = f = self.opener.open (rq, timeout = 10)
         if do_soup :
             # Sometimes we get incomplete read. So we read everything
@@ -267,12 +277,14 @@ class HTML_Requester (object) :
             program via a socket.
         """
         for script in self.soup.find_all ('script') :
-            if '/* Extender.user_name' in script.text :
+            # Kobalt: bs4 API change
+            if '/* Extender.user_name' in script.string :
                 break
         else :
             print ("Error retrieving extender variables")
             return
-        for line in script.text.split ('\n') :
+        # Kobalt: bs4 API change
+        for line in script.string.split ('\n') :
             if '/* Extender.user_name' in line :
                 break
         stmts = line.split (';')
@@ -380,7 +392,8 @@ class PW_Encode (object) :
         if self.testing :
             r.append (b'\1' * n)
         else :
-            r.append (os.urandom (n))
+            # Kobalt: \0 not allowed in random content
+            r.append (bytes(bytearray([int(x.encode('hex'), 16) % 255 + 1 for x in os.urandom (n)])))
         r.append (b'\x02')
         r.append (b'\x00')
         return b''.join (reversed (r))
