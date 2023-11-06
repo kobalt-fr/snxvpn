@@ -31,7 +31,7 @@ f.close ()
 setup \
     ( name             = "snxvpn"
     , py_modules       = ['snxconnect', 'snxvpnversion']
-    , version          = VERSION
+    , version          = "0.1.0"
     , description      =
         "Command-line utility to connect to a Checkpoint SSL VPN "
     , long_description = ''.join (description)
