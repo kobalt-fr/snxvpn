@@ -277,7 +277,7 @@ class HTML_Requester (object) :
         """
         for script in self.soup.find_all ('script') :
             # Kobalt: bs4 API change
-            if '/* Extender.user_name' in script.string :
+            if script.string and '/* Extender.user_name' in script.string :
                 break
         else :
             print ("Error retrieving extender variables")
