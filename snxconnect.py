@@ -26,7 +26,6 @@ from netrc             import netrc, NetrcParseError
 from Crypto.PublicKey  import RSA
 from struct            import pack, unpack
 from subprocess        import Popen, PIPE
-from snxvpnversion     import VERSION
 # Kobalt: drop SSL verification
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -513,7 +512,7 @@ def main () :
         )
     args = cmd.parse_args ()
     if args.version :
-        print ("snxconnect version %s by Ralf Schlatterbeck" % VERSION)
+        print ("snxconnect version by Ralf Schlatterbeck")
         sys.exit (0)
     if not args.username or not args.password :
         n = a = None
